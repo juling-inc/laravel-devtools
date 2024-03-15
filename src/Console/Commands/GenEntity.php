@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Juling\DevTools\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Juling\DevTools\Support\SchemaTrait;
 
@@ -33,7 +34,7 @@ class GenEntity extends Command
     {
         $tables = $this->getTables();
         foreach ($tables as $table) {
-            $this->entityTpl($table);
+            $this->entityTpl($table['name']);
         }
     }
 
@@ -44,18 +45,18 @@ class GenEntity extends Command
 
         $fields = "\n";
         foreach ($columns as $column) {
-            if ($column['Field'] === 'default') {
-                $column['Field'] = 'isDefault';
+            if ($column['name'] === 'default') {
+                $column['name'] = 'isDefault';
             }
-            if ($column['Field'] === 'id' && empty($column['Comment'])) {
-                $column['Comment'] = 'ID';
+            if ($column['name'] === 'id' && empty($column['comment'])) {
+                $column['comment'] = 'ID';
             }
-            $fields .= "    #[OA\\Property(property: '{$column['Field']}', description: '{$column['Comment']}', type: '{$column['SwaggerType']}')]\n";
-            $fields .= '    protected '.$column['BaseType'].' $'.$column['Field'].";\n\n";
+            $fields .= "    #[OA\\Property(property: '{$column['name']}', description: '{$column['comment']}', type: '{$column['swagger_type']}')]\n";
+            $fields .= '    protected '.$column['base_type'].' $'.$column['name'].";\n\n";
         }
 
         foreach ($columns as $column) {
-            $fields .= $this->getSet($column['Field'], $column['BaseType'], $column['Comment'])."\n\n";
+            $fields .= $this->getSet($column['name'], $column['base_type'], $column['comment'])."\n\n";
         }
 
         $fields = rtrim($fields, "\n");

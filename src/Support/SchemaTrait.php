@@ -26,8 +26,9 @@ trait SchemaTrait
     private function getTables(): array
     {
         $tables = Schema::getTables();
+
         foreach ($tables as $key => $table) {
-            if (in_array($table, $this->ignoreTable)) {
+            if (in_array($table['name'], $this->ignoreTable)) {
                 unset($tables[$key]);
             }
         }
@@ -35,35 +36,14 @@ trait SchemaTrait
         return $tables;
     }
 
-    private function getTableComment($tableName): string
-    {
-        $database = env('DB_DATABASE');
-        $tableInfo = DB::select("SELECT `TABLE_COMMENT` FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '$database' AND TABLE_NAME = '$tableName';");
-
-        return $tableInfo[0]->TABLE_COMMENT;
-    }
-
     private function getTableColumns($tableName): array
     {
-        $database = env('DB_DATABASE');
-        $sql = "SELECT COLUMN_NAME,COLUMN_COMMENT FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{$database}' AND TABLE_NAME = '{$tableName}'";
-        $result = DB::select($sql);
+        $columns = Schema::getColumns($tableName);
 
-        $comments = [];
-        foreach ($result as $row) {
-            $comments[$row->COLUMN_NAME] = $row->COLUMN_COMMENT;
-        }
-
-        $sql = 'desc '.$tableName;
-        $result = DB::select($sql);
-
-        $columns = [];
-        foreach ($result as $row) {
-            $row = collect($row)->toArray();
-            $row['Comment'] = $comments[$row['Field']];
-            $row['BaseType'] = $this->getFieldType($row['Type']);
-            $row['SwaggerType'] = $row['BaseType'] === 'int' ? 'integer' : $row['BaseType'];
-            $columns[] = $row;
+        foreach ($columns as $key => $row) {
+            $row['base_type'] = $this->getFieldType($row['type_name']);
+            $row['swagger_type'] = $row['base_type'] === 'int' ? 'integer' : $row['base_type'];
+            $columns[$key] = $row;
         }
 
         return $columns;

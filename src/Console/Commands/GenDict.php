@@ -34,10 +34,9 @@ class GenDict extends Command
 
         $tables = $this->getTables();
         foreach ($tables as $table) {
-            $comment = $this->getTableComment($table);
-            $content .= "### {$comment}(`$table`)\n";
+            $content .= "### {$table['comment']}(`{$table['name']}`)\n";
 
-            $columns = $this->getTableColumns($table);
+            $columns = $this->getTableColumns($table['name']);
             $content .= $this->getContent($columns);
         }
 
@@ -49,8 +48,8 @@ class GenDict extends Command
         $content = "| 列名 | 数据类型 | 索引 | 是否为空 | 描述 |\n";
         $content .= "| ------- | --------- | --------- | --------- | -------------- |\n";
         foreach ($columns as $column) {
-            $isNull = $column['Null'] === 'NO' ? '否' : '是';
-            $content .= "| {$column['Field']} | {$column['Type']} | {$column['Key']} | $isNull | {$column['Comment']} |\n";
+            $isNull = $column['nullable'] ? '是' : '否';
+            $content .= "| {$column['name']} | {$column['type']} | {$column['Key']} | $isNull | {$column['comment']} |\n";
         }
         $content .= "\n";
 
