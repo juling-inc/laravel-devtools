@@ -51,6 +51,15 @@ class GenEntity extends Command
             if ($column['name'] === 'id' && empty($column['comment'])) {
                 $column['comment'] = 'ID';
             }
+            if ($column['name'] === 'created_at' && empty($column['comment'])) {
+                $column['comment'] = '创建时间';
+            }
+            if ($column['name'] === 'updated_at' && empty($column['comment'])) {
+                $column['comment'] = '更新时间';
+            }
+            if ($column['name'] === 'deleted_at' && empty($column['comment'])) {
+                $column['comment'] = '删除时间';
+            }
             $fields .= "    #[OA\\Property(property: '{$column['name']}', description: '{$column['comment']}', type: '{$column['swagger_type']}')]\n";
             $fields .= '    protected '.$column['base_type'].' $'.$column['name'].";\n\n";
         }

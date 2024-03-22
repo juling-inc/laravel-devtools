@@ -36,7 +36,7 @@ class GenRoute extends Command
      */
     public function handle(): void
     {
-        $dirs = glob(app_path('Api/*'), GLOB_ONLYDIR);
+        $dirs = glob(app_path('API/*'), GLOB_ONLYDIR);
         foreach ($dirs as $dir) {
             $module = basename($dir);
             $files = array_merge(

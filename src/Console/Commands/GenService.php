@@ -33,7 +33,7 @@ class GenService extends Command
     {
         $tables = $this->getTables();
         foreach ($tables as $table) {
-            $this->serviceTpl($table);
+            $this->serviceTpl($table['name']);
         }
     }
 

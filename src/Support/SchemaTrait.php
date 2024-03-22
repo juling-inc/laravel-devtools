@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 trait SchemaTrait
 {
-    private array $ignoreTable = [
+    private array $ignoreTables = [
         'cache',
         'cache_locks',
         'failed_jobs',
@@ -28,7 +28,7 @@ trait SchemaTrait
         $tables = Schema::getTables();
 
         foreach ($tables as $key => $table) {
-            if (in_array($table['name'], $this->ignoreTable)) {
+            if (in_array($table['name'], $this->ignoreTables)) {
                 unset($tables[$key]);
             }
         }

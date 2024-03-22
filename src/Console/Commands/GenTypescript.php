@@ -190,7 +190,7 @@ export const {$service}Service = ({$requestParams}): Promise{$response} => {
                     }
                 }
             } elseif (isset($property['$ref'])) {
-                $type = 'I'.basename($property['$ref']).'[]';
+                $type = 'I'.basename($property['$ref']);
             } else {
                 exit($interface.' 对象 '.var_export($property, true).' 缺失类型');
             }

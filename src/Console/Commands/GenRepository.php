@@ -33,7 +33,7 @@ class GenRepository extends Command
     {
         $tables = $this->getTables();
         foreach ($tables as $table) {
-            $this->repositoryTpl($table);
+            $this->repositoryTpl($table['name']);
         }
     }
 

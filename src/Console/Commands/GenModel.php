@@ -26,6 +26,13 @@ class GenModel extends Command
      */
     protected $description = 'Generate model classes';
 
+    private array $ignoreColumns = [
+        'id',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+    ];
+
     /**
      * Execute the console command.
      */
@@ -46,7 +53,9 @@ class GenModel extends Command
 
         $fieldStr = '';
         foreach ($columns as $column) {
-            $fieldStr .= str_pad(' ', 8)."'{$column['name']}',\n";
+            if (! in_array($column['name'], $this->ignoreColumns)) {
+                $fieldStr .= str_pad(' ', 8)."'{$column['name']}',\n";
+            }
             if ($column['name'] === 'deleted_at') {
                 $softDelete = true;
             }

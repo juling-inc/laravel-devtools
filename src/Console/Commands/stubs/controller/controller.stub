@@ -2,45 +2,41 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Controllers;
+namespace App\Http\API\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Http\Requests\{$camelName}\{$name}CreateRequest;
-use App\Http\Requests\{$camelName}\{$name}QueryRequest;
-use App\Http\Requests\{$camelName}\{$name}UpdateRequest;
-use App\Http\Responses\{$camelName}\{$name}QueryResponse;
-use App\Http\Responses\{$camelName}\{$name}Response;
 use App\Entities\{$name}Entity;
-use App\Exception\CustomException;
+use App\Http\API\Enums\{$name}\{$name}StatusEnum;
+use App\Http\API\Requests\{$name}\{$name}CreateRequest;
+use App\Http\API\Requests\{$name}\{$name}QueryRequest;
+use App\Http\API\Requests\{$name}\{$name}UpdateRequest;
+use App\Http\API\Responses\{$name}\{$name}DestroyResponse;
+use App\Http\API\Responses\{$name}\{$name}QueryResponse;
+use App\Http\API\Responses\{$name}\{$name}Response;
+use App\Http\Controllers\Controller;
 use App\Services\{$name}Service;
-use Illuminate\Http\Response;
-use Illuminate\Support\Facade\DB;
-use Illuminate\Support\Facade\Log;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Juling\Foundation\Exceptions\CustomException;
 use OpenApi\Attributes as OA;
 use Throwable;
 
 class {$name}Controller extends Controller
 {
-    #[OA\Post(path: '/api/{$camelName}/query', summary: '查询列表接口', security: [['bearerAuth' => []]], tags: ['{$comment}'])]
+    #[OA\Post(path: '/{$camelName}/query', summary: '查询列表接口', security: [['bearerAuth' => []]], tags: ['{$comment}'])]
     #[OA\Parameter(name: 'page', description: '当前页码', in: 'query', required: true, example: 1)]
     #[OA\Parameter(name: 'pageSize', description: '每页分页数', in: 'query', required: false, example: 10)]
     #[OA\RequestBody(required: true, content: new OA\JsonContent(ref: {$name}QueryRequest::class))]
     #[OA\Response(response: 200, description: 'OK', content: new OA\JsonContent(ref: {$name}QueryResponse::class))]
-    public function query(): Response
+    public function query({$name}QueryRequest $queryRequest): JsonResponse
     {
+        $page = intval($queryRequest->query('page', 1));
+        $pageSize = intval($queryRequest->query('pageSize', 10));
+        $request = $queryRequest->validated();
+
         try {
-            $request = $this->requestBody();
-            $page = intval($this->input('page', 1));
-            $pageSize = intval($this->input('pageSize', 10));
-
-            $v = new {$name}QueryRequest();
-            if (! $v->check($request)) {
-                throw new CustomException($v->getError());
-            }
-
-            $condition = [
-                //
-            ];
+            $condition = [];
 
             ${$camelName}Service = new {$name}Service();
             $result = ${$camelName}Service->page($condition, $page, $pageSize);
@@ -54,71 +50,61 @@ class {$name}Controller extends Controller
             return $this->success($result);
         } catch (Throwable $e) {
             if ($e instanceof CustomException) {
-                return $this->fail($e->getMessage());
+                return $this->error($e);
             }
 
             Log::error($e);
 
-            return $this->fail('查询列表错误');
+            return $this->error({$name}ErrorEnum::QUERY_ERROR);
         }
     }
 
-    #[OA\Post(path: '/api/{$camelName}/create', summary: '新增接口', security: [['bearerAuth' => []]], tags: ['{$comment}'])]
+    #[OA\Post(path: '/{$camelName}/create', summary: '新增接口', security: [['bearerAuth' => []]], tags: ['{$comment}'])]
     #[OA\RequestBody(required: true, content: new OA\JsonContent(ref: {$name}CreateRequest::class))]
-    #[OA\Response(response: 200, description: 'OK')]
-    public function create(): Response
+    #[OA\Response(response: 200, description: 'OK', content: new OA\JsonContent(ref: {$name}Response::class))]
+    public function create({$name}CreateRequest $createRequest): JsonResponse
     {
-        DB::startTrans();
+        $request = $createRequest->validated();
+
+        DB::beginTransaction();
         try {
-            $request = $this->requestBody();
-
-            $v = new {$name}CreateRequest();
-            if (! $v->check($request)) {
-                throw new CustomException($v->getError());
-            }
-
-            $input = new {$name}Input();
+            $input = new {$name}Entity();
             $input->setData($request);
 
             ${$camelName}Service = new {$name}Service();
-            $insertId = ${$camelName}Service->save($input->toArray());
-            if ($insertId > 0) {
+            if (${$camelName}Service->save($input->toArray())) {
                 DB::commit();
 
-                return $this->success('新增数据成功');
+                return $this->success();
             }
 
-            throw new CustomException('新增数据失败');
+            throw new CustomException({$name}ErrorEnum::CREATE_FAIL);
         } catch (Throwable $e) {
-            DB::rollback();
+            DB::rollBack();
 
             if ($e instanceof CustomException) {
-                return $this->fail($e->getMessage());
+                return $this->error($e);
             }
 
             Log::error($e);
 
-            return $this->fail('新增数据错误');
+            return $this->error({$name}ErrorEnum::CREATE_ERROR);
         }
     }
 
-    #[OA\Get(path: '/api/{$camelName}/show', summary: '获取详情接口', security: [['bearerAuth' => []]], tags: ['{$comment}'])]
+    #[OA\Get(path: '/{$camelName}/show', summary: '获取详情接口', security: [['bearerAuth' => []]], tags: ['{$comment}'])]
     #[OA\Parameter(name: 'id', description: 'ID', in: 'query', required: true, example: 1)]
     #[OA\Response(response: 200, description: 'OK', content: new OA\JsonContent(ref: {$name}Response::class))]
-    public function show(): Response
+    public function show(Request $request): JsonResponse
     {
+        $id = intval($request->query('id', 0));
+
         try {
-            $id = intval($this->input('id', 0));
-
-            $condition = [
-                ['id', '=', $id],
-            ];
-
             ${$camelName}Service = new {$name}Service();
-            ${$camelName} = ${$camelName}Service->getOne($condition);
 
+            ${$camelName} = ${$camelName}Service->getOneById($id);
             if (empty(${$camelName})) {
-                throw new CustomException('数据不存在或状态异常');
+                throw new CustomException({$name}ErrorEnum::NOT_FOUND);
             }
 
             $response = new {$name}Response();
@@ -127,89 +113,86 @@ class {$name}Controller extends Controller
             return $this->success($response->toArray());
         } catch (Throwable $e) {
             if ($e instanceof CustomException) {
-                return $this->fail($e->getMessage());
+                return $this->error($e);
             }
 
             Log::error($e);
 
-            return $this->fail('获取详情错误');
+            return $this->error({$name}ErrorEnum::SHOW_ERROR);
         }
     }
 
-    #[OA\Put(path: '/api/{$camelName}/update', summary: '更新接口', security: [['bearerAuth' => []]], tags: ['{$comment}'])]
+    #[OA\Put(path: '/{$camelName}/update', summary: '更新接口', security: [['bearerAuth' => []]], tags: ['{$comment}'])]
     #[OA\RequestBody(required: true, content: new OA\JsonContent(ref: {$name}UpdateRequest::class))]
-    #[OA\Response(response: 200, description: 'OK')]
-    public function update(): Response
+    #[OA\Response(response: 200, description: 'OK', content: new OA\JsonContent(ref: {$name}Response::class))]
+    public function update({$name}UpdateRequest $updateRequest): JsonResponse
     {
-        DB::startTrans();
+        $request = $updateRequest->validated();
+        $id = intval($request->query('id', 0));
+
+        DB::beginTransaction();
         try {
-            $request = $this->requestBody();
-
-            $v = new {$name}UpdateRequest();
-            if (! $v->check($request)) {
-                throw new CustomException($v->getError());
-            }
-
             ${$camelName}Service = new {$name}Service();
-            ${$camelName} = ${$camelName}Service->getById($request['id']);
+
+            ${$camelName} = ${$camelName}Service->getOneById($id);
             if (empty(${$camelName})) {
-                throw new CustomException('数据不存在或状态异常');
+                throw new CustomException({$name}ErrorEnum::NOT_FOUND);
             }
 
-            $input = new {$name}Input();
+            $input = new {$name}Entity();
             $input->setData($request);
 
-            ${$camelName}Service->update($input->toArray(), [
-                ['id', '=', $request['id']],
-            ]);
+            ${$camelName}Service->updateById($input->toArray(), $id);
 
             DB::commit();
 
-            return $this->success('更新数据成功');
+            return $this->success();
         } catch (Throwable $e) {
-            DB::rollback();
+            DB::rollBack();
 
             if ($e instanceof CustomException) {
-                return $this->fail($e->getMessage());
+                return $this->error($e);
             }
 
             Log::error($e);
 
-            return $this->fail('更新数据错误');
+            return $this->error({$name}ErrorEnum::UPDATE_ERROR);
         }
     }
 
-    #[OA\Delete(path: '/api/{$camelName}/destroy', summary: '删除接口', security: [['bearerAuth' => []]], tags: ['{$comment}'])]
+    #[OA\Delete(path: '/{$camelName}/destroy', summary: '删除接口', security: [['bearerAuth' => []]], tags: ['{$comment}'])]
     #[OA\Parameter(name: 'id', description: 'ID', in: 'query', required: true, example: 1)]
-    #[OA\Response(response: 200, description: 'OK')]
-    public function destroy(): Response
+    #[OA\Response(response: 200, description: 'OK', content: new OA\JsonContent(ref: {$name}DestroyResponse::class))]
+    public function destroy(Request $request): JsonResponse
     {
-        DB::startTrans();
+        $id = intval($request->query('id', 0));
+
+        DB::beginTransaction();
         try {
-            $id = intval($this->input('id', 0));
-
-            $condition = [
-                ['id', '=', $id],
-            ];
-
             ${$camelName}Service = new {$name}Service();
-            if (${$camelName}Service->remove($condition)) {
-                DB::commit();
 
-                return $this->success('删除数据成功');
+            ${$camelName} = ${$camelName}Service->getOneById($id);
+            if (empty(${$camelName})) {
+                throw new CustomException({$name}ErrorEnum::NOT_FOUND);
             }
 
-            throw new CustomException('删除数据失败');
+            if (${$camelName}Service->removeById($id)) {
+                DB::commit();
+
+                return $this->success();
+            }
+
+            throw new CustomException({$name}ErrorEnum::DESTROY_FAIL);
         } catch (Throwable $e) {
-            DB::rollback();
+            DB::rollBack();
 
             if ($e instanceof CustomException) {
-                return $this->fail($e->getMessage());
+                return $this->error($e);
             }
 
             Log::error($e);
 
-            return $this->fail('删除数据错误');
+            return $this->error({$name}ErrorEnum::DESTROY_ERROR);
         }
     }
 }
