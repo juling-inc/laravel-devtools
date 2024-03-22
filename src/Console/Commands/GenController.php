@@ -49,7 +49,6 @@ class GenController extends Command
             $this->controllerTpl($className, $comment);
             $this->requestTpl($className, $columns);
             $this->responseTpl($className, $columns);
-            $this->enumsTpl($className, $comment);
         }
     }
 
@@ -213,23 +212,5 @@ class GenController extends Command
             $fields,
         ], $content);
         file_put_contents(app_path('Http/API/Responses/'.$name.'/'.$name.'Response.php'), $content);
-    }
-
-    public function enumsTpl(string $name, string $comment): void
-    {
-        $dist = app_path('Http/API/Enums/'.$name);
-        if (! is_dir($dist)) {
-            $this->ensureDirectoryExists($dist);
-        }
-
-        $content = file_get_contents(__DIR__.'/stubs/enums/status.stub');
-        $content = str_replace([
-            '{$name}',
-            '{$comment}',
-        ], [
-            $name,
-            $comment,
-        ], $content);
-        file_put_contents(app_path('Http/API/Enums/'.$name.'/'.$name.'StatusEnum.php'), $content);
     }
 }
